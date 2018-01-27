@@ -1,0 +1,31 @@
+{
+  "name": "workshop-graphql-medellinjs",
+  "version": "1.0.0",
+  "description": "workshop for medellinjs, configuration of graphql with a server nodejs",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon api/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanVilla1585/workshop-graphql-medellinjs.git"
+  },
+  "keywords": [
+    "graphql",
+    "workshop",
+    "medellinjs"
+  ],
+  "author": "Ivan Dario Villa Ramirez <trezeguet55@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/IvanVilla1585/workshop-graphql-medellinjs/issues"
+  },
+  "homepage": "https://github.com/IvanVilla1585/workshop-graphql-medellinjs#readme",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.14.11"
+  }
+}
