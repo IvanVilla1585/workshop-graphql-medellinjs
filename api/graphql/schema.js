@@ -7,17 +7,21 @@ const showSchema = require('./shows-tv/schema');
 const showResolrver = require('./shows-tv/resolver');
 const postSchema = require('./posts/schema');
 const postResolrver = require('./posts/resolver');
+const commentSchema = require('./comments/schema');
+const commentResolrver = require('./comments/resolver');
 
 
 const typeDefs = [
   ...showSchema,
-  ...postSchema
+  ...postSchema,
+  ...commentSchema
 ];
 
 
 const resolvers = merge(
   showResolrver,
-  postResolrver
+  postResolrver,
+  commentResolrver
 );
 
 
