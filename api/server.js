@@ -10,6 +10,7 @@ const config = require('./config');
 const schema = require('./graphql/schema');
 const ShowConnector = require('./graphql/shows-tv/connector');
 const PostStorage = require('./graphql/posts/storage');
+const CommentStorage = require('./graphql/comments/storage');
 
 const app = express();
 const port = 3000;
@@ -25,7 +26,8 @@ app.use('/graphql', graphqlExpress(req => {
     schema,
     context: {
       showConnector: new ShowConnector(config.tvMazeUrl),
-      postStorage: new PostStorage(conn)
+      postStorage: new PostStorage(conn),
+      commentStorage: new CommentStorage(conn)
     }
   }
 }));
