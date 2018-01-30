@@ -352,17 +352,6 @@
             return result;
           }
         },
-        Post: {
-          async comments({id}, args, {commentStorage}) {
-            let result = [];
-            try {
-              result = await commentStorage.find({postId: id});
-            } catch (err) {
-              throw new Error('Error: find comments');
-            }
-            return result;
-          }
-        },
         Mutation: {
           postAdd(root, args, {postStorage}) {
             let result = {};
