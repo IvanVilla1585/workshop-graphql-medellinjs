@@ -39,8 +39,8 @@
 
 
 - Install next dependencies ```npm i -S apollo-server-express body-parser graphql graphql-tools lodash.merge node-fetch```
-- Create a folder called graphql: ```mkdir graphql```
-- Create a folder called shows-tv: ```mkdir graphql/shows-tv```
+- Create a folder called graphql: ```mkdir api/graphql```
+- Create a folder called shows-tv: ```mkdir api/graphql/shows-tv```
 - On the folder shows-tv we are going to create the following files:
 
     - Create a file called schema.js and added the next code
@@ -177,7 +177,7 @@
   const {makeExecutableSchema} = require('graphql-tools');
   
   const showSchema = require('./shows-tv/schema');
-  const showResolrver = require('./shows-tv/resolver');
+  const showResolver = require('./shows-tv/resolver');
   
   
   const typeDefs = [
@@ -186,7 +186,7 @@
   
   
   const resolvers = merge(
-    showResolrver
+    showResolver
   );
   
   
@@ -223,7 +223,7 @@
     const ShowConnector = require('./graphql/shows-tv/connector');
     ```
     
-    - configure graphql and graphiql: 
+    - Configure graphql and graphiql: 
     ```js
       app.use(bodyParse.json());
       
@@ -271,5 +271,269 @@
         endpointURL: '/graphql'
       }));
       
-      app.listen(port, () => console.log(`server running in the port ${port}`));
+      app.listen(port, () => console.log(`Server is now running on http://localhost:${port}`));
     ```
+    
+    
+## Create the Post Entity
+
+- Create a folder called posts: ```mkdir api/graphql/posts```
+- On the folder posts we are going to create the following files:
+
+    - Create a file called schema.js and added the next code
+    ```js
+      const schema = [`
+        
+        # data to create post
+        input PostInput {
+          author: String!, 
+          email: String, 
+          title: String!, 
+          body: String!
+        }
+        
+        # data to update post
+        input PostEditInput {
+          author: String, 
+          email: String, 
+          title: String, 
+          body: String
+        }
+        
+        # data post
+        type Post {
+          id: ID, 
+          author: String, 
+          title: String, 
+          body: String,
+          createdAt: String
+        }
+        
+        extend type Query {
+          # find all post
+          posts: [Post]
+          # find post by id
+          postById(id: ID!): Post
+        }
+        
+        type Mutation {
+          # create post
+          postAdd(data: PostInput): Post
+          # update post
+          postEdit(id: ID!, data: PostEditInput): Post
+          # delete post
+          postDelete(id: ID!): Post
+        }
+      `];
+      
+      module.exports = schema;
+    ```
+    
+    - Create a file called resolver.js and added the next code
+    ```js
+      const resolver = {
+        Query: {
+          async posts(root, args, {postStorage}) {
+            let results = [];
+            try {
+              results = await postStorage.find();
+            } catch (err) {
+              throw new Error('Error: find all posts');
+            }
+            return results;
+          },
+          async postById(root, args, {postStorage}) {
+            let result = {};
+            try {
+              result = await postStorage.findById(args.id);
+            } catch (err) {
+              throw new Error('Error: find post by id');
+            }
+            return result;
+          }
+        },
+        Post: {
+          async comments({id}, args, {commentStorage}) {
+            let result = [];
+            try {
+              result = await commentStorage.find({postId: id});
+            } catch (err) {
+              throw new Error('Error: find comments');
+            }
+            return result;
+          }
+        },
+        Mutation: {
+          postAdd(root, args, {postStorage}) {
+            let result = {};
+            try {
+              result = postStorage.save({...args.data});
+            } catch (err) {
+              throw new Error('Error: save post');
+            }
+            return result;
+          },
+          async postEdit(root, args, {postStorage}) {
+            let result = {};
+            try {
+              result = await postStorage.update(args.id, {...args.data});
+            } catch (err) {
+              throw new Error('Error: update post');
+            }
+            return result;
+          },
+          async postDelete(root, args, {postStorage}) {
+            let result = {};
+            try {
+              result = await postStorage.delete(args.id);
+            } catch (err) {
+              throw new Error('Error: delete post');
+            }
+            return result;
+          }
+        }
+      };
+      
+      module.exports = resolver;
+    ```
+    
+    - Create a file called model.js and added the next code
+    ```js
+      'use strict'
+      
+      const mongoose = require('mongoose');
+      
+      const schema = new mongoose.Schema({
+        title: {
+          type: String,
+          required: 'The title field is required'
+        },
+        body: {
+          type: String,
+          required: 'The body field is required'
+        },
+        author:{
+          type: String,
+          required: 'The author field is required'
+        },
+        email:{
+          type: String
+        }
+      }, {timestamps: true});
+      
+      if (!schema.options.toJSON) schema.options.toJSON = {};
+      
+      /**
+       * Add a tranforma method to change _id by id
+       * whent toJSON is used.
+       */
+      schema.options.toJSON.transform = (doc, ret) => {
+        // remove the _id of every document before returning the result
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+      };
+      
+      
+      module.exports =  mongoose.model('Post', schema);
+    ```
+    
+    - Create a file called storage.js and added the next code
+    ```js
+      'use strict'
+      
+      require('./model');
+      
+      class PostStorage {
+        constructor(conn = null) {
+          if (!conn) throw new Error('connection not provider');
+      
+          this.Model = conn.model('Post');
+        }
+      
+        async save(data) {
+          let result = {};
+          try {
+            result = await new this.Model(data).save();
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async update(id, data) {
+          let result = {};
+          try {
+            result = await this.Model.findByIdAndUpdate(id, {$set: data}, {new: true});
+            if (!result) {
+              result = {failed: true, message: 'Post not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async delete(id) {
+          let result = {};
+          try {
+            result = await this.Model.findByIdAndRemove(id);
+            if (!result) {
+              result = {failed: true, message: 'Post not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async find(query = {}) {
+          let results = [];
+          try {
+            results = await this.Model.find(query);
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return results;
+        }
+      
+        async findById(id) {
+          let result = {};
+          try {
+            result = await this.Model.findById(id);
+            if (!result) {
+              result = {failed: true, message: 'Post not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      }
+      
+      module.exports = PostStorage;
+    ```
+    
+## Configure the global schema
+
+- On the file schema.js we are going to added next code:
+```js
+  'use strict'
+  
+  const postSchema = require('./posts/schema');
+  const postResolver = require('./posts/resolver');
+  
+  
+  const typeDefs = [
+    ...showSchema,
+    ...postSchema
+  ];
+  
+  
+  const resolvers = merge(
+    showResolver,
+    postResolver
+  );
+  
+  module.exports = executableSchema;
+```
