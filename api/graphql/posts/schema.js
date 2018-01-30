@@ -22,6 +22,7 @@ const schema = [`
     author: String, 
     title: String, 
     body: String,
+    comments: [Comment],
     createdAt: String
   }
   
