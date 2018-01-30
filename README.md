@@ -526,3 +526,226 @@
   
   module.exports = executableSchema;
 ```
+
+## Create the Comment Entity
+
+- Create a folder called posts: ```mkdir api/graphql/comments```
+- On the folder comments we are going to create the following files:
+
+    - Create a file called schema.js and added the next code
+    ```js
+      const schema = [`
+        
+        # data to create comment
+          input CommentInput {
+            postId: ID!,
+            name: String!,
+            email: String,
+            body: String!
+          }
+         
+          type Comment {
+            id: ID,
+            post: Post,
+            name: String,
+            email: String,
+            body: String
+          }
+        
+          extend type Query { 
+            comments: [Comment] 
+          }
+        
+          type Subscription {
+            commentAdd(data: CommentInput): Comment
+          }
+      `];
+      
+      module.exports = schema;
+    ```
+    
+    - Create a file called resolver.js and added the next code
+    ```js
+      'use strict'
+    
+      const resolver = {
+        Query: {
+          async comments(root, args, {commentStorage}) {
+            let results = [];
+            try {
+              results = await commentStorage.find();
+            } catch (err) {
+              throw new Error('Error: find all comment');
+            }
+            return results;
+          }
+        },
+        Comment: {
+          async post({postId}, args, {postStorage}) {
+            let result = {};
+            if (!postId) return {};
+            try {
+              result = await postStorage.findById(postId);
+            } catch (err) {
+              throw new Error('Error: find post');
+            }
+            return result;
+          }
+        },
+        Subscription: {
+          async commentAdd(root, args, {commentStorage}) {
+            let result = {};
+            try {
+              result = await commentStorage.save({...args.data});
+            } catch (err) {
+              throw new Error('Error: save comment');
+            }
+            return result;
+          }
+        }
+      };
+      
+      module.exports = resolver;
+    ```
+    
+    - Create a file called model.js and added the next code
+    ```js
+      'use strict'
+      
+      const mongoose = require('mongoose');
+      
+      const schema = new mongoose.Schema({
+        name: {
+          type: String,
+          required: 'The name field is required'
+        },
+        body: {
+          type: String,
+          required: 'The body field is required'
+        },
+        email: {
+          type: String
+        },
+        postId:{
+          type: mongoose.Schema.Types.ObjectId,
+          required: 'The postId field is required'
+        }
+      }, {timestamps: true});
+      
+      if (!schema.options.toJSON) schema.options.toJSON = {};
+      
+      /**
+       * Add a tranforma method to change _id by id
+       * whent toJSON is used.
+       */
+      schema.options.toJSON.transform = (doc, ret) => {
+        // remove the _id of every document before returning the result
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+      };
+      
+      
+      module.exports =  mongoose.model('Comment', schema);
+    ```
+    
+    - Create a file called storage.js and added the next code
+    ```js
+      'use strict'
+      
+      require('./model');
+      
+      class CommentStorage {
+        constructor(conn = null) {
+          if (!conn) throw new Error('connection not provider');
+      
+          this.Model = conn.model('Comment');
+        }
+      
+        async save(data) {
+          let result = {};
+          try {
+            result = await new this.Model(data).save();
+          } catch (err) {
+            console.log('err', err)
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async update(id, data) {
+          let result = {};
+          try {
+            result = await this.Model.findByIdAndUpdate(id, {$set: data}, {new: true});
+            if (!result) {
+              result = {failed: true, message: 'Comment not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async delete(id) {
+          let result = {};
+          try {
+            result = await this.Model.findByIdAndRemove(id);
+            if (!result) {
+              result = {failed: true, message: 'Comment not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      
+        async find(query) {
+          let results = [];
+          try {
+            results = await this.Model.find(query);
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return results;
+        }
+      
+        async findById(id) {
+          let result = {};
+          try {
+            result = await this.Model.findById(id);
+            if (!result) {
+              result = {failed: true, message: 'Comment not found'}
+            }
+          } catch (err) {
+            throw new Error(err.messages);
+          }
+          return result;
+        }
+      }
+      
+      module.exports = CommentStorage;
+    ```
+    
+## Configure the global schema
+
+- On the file schema.js we are going to added next code:
+```js
+  'use strict'
+  
+  const commentSchema = require('./comments/schema');
+  const commentResolver = require('./comments/resolver');
+  
+  
+  const typeDefs = [
+    ...showSchema,
+    ...postSchema,
+    ...commentSchema
+  ];
+  
+  
+  const resolvers = merge(
+    showResolver,
+    postResolver,
+    commentResolver
+  );
+```
