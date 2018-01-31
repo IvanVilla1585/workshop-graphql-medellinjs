@@ -282,6 +282,9 @@
 
     - Create a file called schema.js and added the next code
     ```js
+    
+      'use strict'
+    
       const schema = [`
         
         # data to create post
@@ -331,6 +334,8 @@
     
     - Create a file called resolver.js and added the next code
     ```js
+      'use strict'
+    
       const resolver = {
         Query: {
           async posts(root, args, {postStorage}) {
@@ -595,6 +600,8 @@
 
     - Create a file called schema.js and added the next code
     ```js
+      'use strict'
+    
       const schema = [`
         
         # data to create comment
@@ -791,7 +798,6 @@
 
 - On the file schema.js we are going to added next code:
 ```js
-  'use strict'
   
   const commentSchema = require('./comments/schema');
   const commentResolver = require('./comments/resolver');
