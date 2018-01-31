@@ -19,7 +19,7 @@
 
 - Install express ```npm i -S express```
 - Install nodemon as dev dependency ```npm i -D nodemon```
-- On the package.json we are going to add the following script ```"start": "nodemon server.js"```
+- On the package.json we are going to add the following script ```"start": "nodemon api/server.js"```
 - This will be our initial server.js
 
 ```js
@@ -276,6 +276,7 @@
     
 ## Create the Post Entity
 
+- Install next dependencies: ```npm i -S mongoose bluebird```
 - Create a folder called posts: ```mkdir api/graphql/posts```
 - On the folder posts we are going to create the following files:
 
@@ -506,7 +507,6 @@
 
 - On the file schema.js we are going to added next code:
 ```js
-  'use strict'
   
   const postSchema = require('./posts/schema');
   const postResolver = require('./posts/resolver');
@@ -522,8 +522,70 @@
     showResolver,
     postResolver
   );
+```
+    
+## Configure the post storage
+
+- On the file server.js we are going to added next code:
+```js
   
-  module.exports = executableSchema;
+    const mongoose = require('mongoose');
+    const Promise = require('bluebird');
+    
+    const PostStorage = require('./graphql/posts/storage');
+    
+    mongoose.Promise = Promise;
+    const conn = mongoose.createConnection(config.db);
+    
+    app.use('/graphql', graphqlExpress(req => {
+      return {
+        schema,
+        context: {
+          showConnector: new ShowConnector(config.tvMazeUrl),
+          postStorage: new PostStorage(conn)
+        }
+      }
+    }));
+```
+ - The server.js file should be seen as follows:
+```js
+  'use strict'
+  
+  const express = require('express');
+  const mongoose = require('mongoose');
+  const Promise = require('bluebird');
+  const bodyParse = require('body-parser');
+  const {graphqlExpress, graphiqlExpress} = require('apollo-server-express');
+  
+  const config = require('./config');
+  const schema = require('./graphql/schema');
+  const ShowConnector = require('./graphql/shows-tv/connector');
+  const PostStorage = require('./graphql/posts/storage');
+  
+  const app = express();
+  const port = 3000;
+  
+  mongoose.Promise = Promise;
+  
+  const conn = mongoose.createConnection(config.db);
+  
+  app.use(bodyParse.json());
+  
+  app.use('/graphql', graphqlExpress(req => {
+    return {
+      schema,
+      context: {
+        showConnector: new ShowConnector(config.tvMazeUrl),
+        postStorage: new PostStorage(conn)
+      }
+    }
+  }));
+  
+  app.get('/graphiql', graphiqlExpress({
+    endpointURL: '/graphql'
+  }));
+  
+  app.listen(port, () => console.log(`server running in the port ${port}`));
 ```
 
 ## Create the Comment Entity
@@ -747,4 +809,65 @@
     postResolver,
     commentResolver
   );
+```
+    
+## Configure the Comment storage
+
+- On the file server.js we are going to added next code:
+```js
+    
+    const CommentStorage = require('./graphql/comments/storage');
+    
+    app.use('/graphql', graphqlExpress(req => {
+      return {
+        schema,
+        context: {
+          showConnector: new ShowConnector(config.tvMazeUrl),
+          postStorage: new PostStorage(conn),
+          commentStorage: new CommentStorage(conn)
+        }
+      }
+    }));
+```
+ - The server.js file should be seen as follows:
+```js
+  'use strict'
+  
+  const express = require('express');
+  const mongoose = require('mongoose');
+  const Promise = require('bluebird');
+  const bodyParse = require('body-parser');
+  const {graphqlExpress, graphiqlExpress} = require('apollo-server-express');
+  
+  const config = require('./config');
+  const schema = require('./graphql/schema');
+  const ShowConnector = require('./graphql/shows-tv/connector');
+  const PostStorage = require('./graphql/posts/storage');
+  const CommentStorage = require('./graphql/comments/storage');
+  
+  const app = express();
+  const port = 3000;
+  
+  mongoose.Promise = Promise;
+  
+  const conn = mongoose.createConnection(config.db);
+  
+  app.use(bodyParse.json());
+  
+  app.use('/graphql', graphqlExpress(req => {
+    return {
+      schema,
+      context: {
+        showConnector: new ShowConnector(config.tvMazeUrl),
+        postStorage: new PostStorage(conn),
+        commentStorage: new CommentStorage(conn)
+      }
+    }
+  }));
+  
+  app.get('/graphiql', graphiqlExpress({
+    endpointURL: '/graphql'
+  }));
+  
+  app.listen(port, () => console.log(`server running in the port ${port}`));
 ```
