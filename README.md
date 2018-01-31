@@ -44,128 +44,127 @@
 - On the folder shows-tv we are going to create the following files:
 
     - Create a file called schema.js and added the next code
-```js
-  'use strict'
-  
-  const schema = [`
+    ```js
+      'use strict'
+      
+      const schema = [`
+        
+        # show data
+        type Show {
+          id: Int,
+          name: String,
+          type: String,
+          language: String
+          genres: [String],
+          status: String,
+          runtime: Int,
+          premiered: String,
+          akas: [Aka]
+        }
+        
+        type Aka {
+          name: String,
+          country: Country
+        }
+        
+        type Country {
+          name: String,
+          code: String,
+          timezone: String
+        }
+        
+        type Query {
+          shows: [Show]
+          showById(id: ID!): Show
+        }
+      `];
+      
+      module.exports = schema;
+    ```
     
-    # show data
-    type Show {
-      id: Int,
-      name: String,
-      type: String,
-      language: String
-      genres: [String],
-      status: String,
-      runtime: Int,
-      premiered: String,
-      akas: [Aka]
-    }
-    
-    type Aka {
-      name: String,
-      country: Country
-    }
-    
-    type Country {
-      name: String,
-      code: String,
-      timezone: String
-    }
-    
-    type Query {
-      shows: [Show]
-      showById(id: ID!): Show
-    }
-  `];
-  
-  module.exports = schema;
-```
-
-
     - Create a file called resolver.js and added the next code
-```js
-  'use strict'
-  
-  const resolver = {
-    Query: {
-      shows(root, args, {showConnector}) {
-        let results = [];
-  
-        try {
-          results = showConnector.getShows();
-        } catch (err) {
-          throw new Error('Error: find all shows')
+    ```js
+      'use strict'
+      
+      const resolver = {
+        Query: {
+          shows(root, args, {showConnector}) {
+            let results = [];
+      
+            try {
+              results = showConnector.getShows();
+            } catch (err) {
+              throw new Error('Error: find all shows')
+            }
+      
+            return results;
+          },
+          showById(root, args, {showConnector}) {
+            let results = {};
+      
+            try {
+              results = showConnector.getShowById(args.id);
+            } catch (err) {
+              throw new Error('Error: find show by id')
+            }
+      
+            return results;
+          }
+        },
+        Show: {
+          akas({id}, args, {showConnector}) {
+            let results = [];
+            try {
+              results = showConnector.getShowsAkas(id);
+            } catch (err) {
+              throw new Error('Error: find all akas')
+            }
+      
+            return results;
+          }
         }
-  
-        return results;
-      },
-      showById(root, args, {showConnector}) {
-        let results = {};
-  
-        try {
-          results = showConnector.getShowById(args.id);
-        } catch (err) {
-          throw new Error('Error: find show by id')
-        }
-  
-        return results;
-      }
-    },
-    Show: {
-      akas({id}, args, {showConnector}) {
-        let results = [];
-        try {
-          results = showConnector.getShowsAkas(id);
-        } catch (err) {
-          throw new Error('Error: find all akas')
-        }
-  
-        return results;
-      }
-    }
-  };
-  
-  
-  module.exports = resolver;
-```
+      };
+      
+      
+      module.exports = resolver;
+    ```
 
     - Create a file called connector.js and added the next code
-```js
-  'use strict'
-  
-  const fetch = require('node-fetch');
-  
-  
-  class ShowConnector {
-    constructor(url = '') {
-      if (!url) throw new Error()('The url is not provider');
-      this.API_ROOT = url;
-    }
-  
-    async fetch(url) {
-      const URL = `${this.API_ROOT}${url}`;
-      const res = await fetch(URL).then(r => r.json());
-  
-      if (res.errors) throw Error(res.message);
-      return res;
-    }
-  
-    getShows() {
-      return this.fetch('/shows?page=1');
-    }
-  
-    getShowById(id) {
-      return this.fetch(`/shows/${id}`);
-    }
-  
-    getShowsAkas(id) {
-      return this.fetch(`/shows/${id}/akas`);
-    }
-  }
-  
-  module.exports = ShowConnector;
-```
+    ```js
+      'use strict'
+      
+      const fetch = require('node-fetch');
+      
+      
+      class ShowConnector {
+        constructor(url = '') {
+          if (!url) throw new Error()('The url is not provider');
+          this.API_ROOT = url;
+        }
+      
+        async fetch(url) {
+          const URL = `${this.API_ROOT}${url}`;
+          const res = await fetch(URL).then(r => r.json());
+      
+          if (res.errors) throw Error(res.message);
+          return res;
+        }
+      
+        getShows() {
+          return this.fetch('/shows?page=1');
+        }
+      
+        getShowById(id) {
+          return this.fetch(`/shows/${id}`);
+        }
+      
+        getShowsAkas(id) {
+          return this.fetch(`/shows/${id}/akas`);
+        }
+      }
+      
+      module.exports = ShowConnector;
+    ```
 
 ## Configure the global schema
 
